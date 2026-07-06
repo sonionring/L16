@@ -39,7 +39,7 @@ app.get('/', (req, res) => {
             console.error('Database query error:', error.message);
             return res.send('Error retrieving students');
         }
-        res.render('index', { students: results });
+        res.render('index', { student: results });
     });
 });
 
@@ -115,7 +115,6 @@ app.post('/student/:id/edit', (req, res) => {
     });
 });
 
-// ---------- ROUTE: Delete a student ----------
 app.post('/student/:id/delete', (req, res) => {
     const studentId = req.params.id;
     const sql = 'DELETE FROM student WHERE studentId = ?';
