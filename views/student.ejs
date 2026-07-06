@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Bootstrap Navbar -->
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Student List App</a>
+            <a class="nav-link text-white" href="/addStudent">Add new student</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2>Student Details</h2>
+
+        <% if (student) { %>
+            <p><b>Student Name:</b><br><%= student.name %></p>
+            <p><b>Student Image:</b><br><img src="<%= student.image %>" width="150"></p>
+            <p><b>Date of Birth:</b><br><%= new Date(student.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) %></p>
+            <p><b>Contact:</b><br><%= student.contact %></p>
+            <p>
+                <a href="/student/<%= student.studentId %>/edit" class="btn btn-secondary">Edit</a>
+                <form action="/student/<%= student.studentId %>/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this student?');">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </p>
+        <% } else { %>
+            <p>No student found.</p>
+        <% } %>
+    </div>
+
+</body>
+</html>
