@@ -18,12 +18,12 @@
     <div class="container mt-4">
         <h2 class="text-center mb-4">Students from Student List App Database</h2>
 
-        <table class="table table-bordered table-hover">
+        <table class="table table-bordered table-hover align-middle">
             <thead>
                 <tr>
                     <th>Student Name</th>
                     <th>Student Image</th>
-                    <th>Dob</th>
+                    <th>D.O.B</th>
                     <th>Contact</th>
                     <th>Actions</th>
                 </tr>
@@ -31,13 +31,20 @@
             <tbody>
                 <% for(let i = 0; i < students.length; i++) { %>
                 <tr>
-                    <td><a href="/student/<%= students[i].studentId %>"><%= students[i].name %></a></td>
-                    <td><img src="<%= students[i].image %>" width="60"></td>
+                    <td><a href="/student/<%= students[i].studentId %>" class="text-decoration-none"><%= students[i].name %></a></td>
+                    <td>
+                        <% if (students[i].image) { %>
+                            <img src="<%= students[i].image %>" alt="<%= students[i].name %>" width="60" height="60" class="rounded">
+                        <% } else { %>
+                            <span class="text-muted">No image</span>
+                        <% } %>
+                    </td>
                     <td><%= new Date(students[i].dob).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) %></td>
                     <td><%= students[i].contact %></td>
                     <td>
-                        <a href="/student/<%= students[i].studentId %>/edit" class="btn btn-sm btn-secondary">Edit</a>
-                        <form action="/student/<%= students[i].studentId %>/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this student?');">
+                        <a href="/student/<%= students[i].studentId %>/edit" class="btn btn-sm btn-secondary me-2">Edit</a>
+                        <form action="/student/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this student?');">
+                            <input type="hidden" name="studentId" value="<%= students[i].studentId %>">
                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                         </form>
                     </td>

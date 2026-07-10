@@ -19,16 +19,25 @@
         <h2>Student Details</h2>
 
         <% if (student) { %>
-            <p><b>Student Name:</b><br><%= student.name %></p>
-            <p><b>Student Image:</b><br><img src="<%= student.image %>" width="150"></p>
-            <p><b>Date of Birth:</b><br><%= new Date(student.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) %></p>
-            <p><b>Contact:</b><br><%= student.contact %></p>
-            <p>
-                <a href="/student/<%= student.studentId %>/edit" class="btn btn-secondary">Edit</a>
-                <form action="/student/<%= student.studentId %>/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this student?');">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </p>
+            <div class="card shadow-sm p-4 col-md-8">
+                <p><b>Student Name:</b><br><%= student.name %></p>
+                <p><b>Student Image:</b><br>
+                    <% if (student.image) { %>
+                        <img src="<%= student.image %>" alt="<%= student.name %>" width="150" class="rounded mt-2">
+                    <% } else { %>
+                        <span class="text-muted">No image uploaded</span>
+                    <% } %>
+                </p>
+                <p><b>Date of Birth:</b><br><%= new Date(student.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) %></p>
+                <p><b>Contact:</b><br><%= student.contact %></p>
+                <p>
+                    <a href="/student/<%= student.studentId %>/edit" class="btn btn-secondary me-2">Edit</a>
+                    <form action="/student/delete" method="POST" style="display:inline" onsubmit="return confirm('Delete this student?');">
+                        <input type="hidden" name="studentId" value="<%= student.studentId %>">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </p>
+            </div>
         <% } else { %>
             <p>No student found.</p>
         <% } %>

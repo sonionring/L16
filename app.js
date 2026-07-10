@@ -1,17 +1,39 @@
 const express = require('express');
+const path = require('path');
 const mysql = require('mysql2');
+const multer = require('multer');
 
 const app = express();
 
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(__dirname, 'public', 'uploads')),
+    filename: (req, file, cb) => {
+        const safeName = file.originalname.replace(/\s+/g, '-');
+        cb(null, `${Date.now()}-${safeName}`);
+    }
+});
+
+const upload = multer({ storage });
+
+const normalizeStudent = (row) => {
+    if (!row) return row;
+    const studentId = row.studentId ?? row.studentid ?? row.studentID ?? row['studentId'];
+    return { ...row, studentId };
+};
+
+const normalizeStudents = (rows) => rows.map(normalizeStudent);
+
 // Set up view engine
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // Enable static files (css, images, etc. if you add a public folder)
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Enable form processing (needed to read req.body from the addStudent form)
+app.use(express.json());
 app.use(express.urlencoded({
-    extended: false
+    extended: true
 }));
 
 // Set up MySQL connection
@@ -33,27 +55,27 @@ connection.connect((error) => {
 
 // ---------- ROUTE: Display all students ----------
 app.get('/', (req, res) => {
-    const sql = 'SELECT * FROM student';
+    const sql = 'SELECT studentId AS studentId, name, dob, contact, image FROM student';
     connection.query(sql, (error, results) => {
         if (error) {
             console.error('Database query error:', error.message);
             return res.send('Error retrieving students');
         }
-        res.render('index', { student: results });
+        res.render('index', { students: normalizeStudents(results) });
     });
 });
 
 // ---------- ROUTE: Display ONE student by id ----------
 app.get('/student/:id', (req, res) => {
     const studentId = req.params.id;
-    const sql = 'SELECT * FROM student WHERE studentId = ?';
+    const sql = 'SELECT studentId AS studentId, name, dob, contact, image FROM student WHERE studentId = ?';
     connection.query(sql, [studentId], (error, results) => {
         if (error) {
             console.error('Database query error:', error.message);
             return res.send('Error retrieving student by ID');
         }
         if (results.length > 0) {
-            res.render('student', { student: results[0] });
+            res.render('student', { student: normalizeStudent(results[0]) });
         } else {
             res.send('Student not found');
         }
@@ -66,35 +88,31 @@ app.get('/addStudent', (req, res) => {
 });
 
 // ---------- ROUTE: Handle form submission - Add new student into the database ----------
-app.post('/addStudent', (req, res) => {
-    // Extract student data from the request body
+app.post('/addStudent', upload.single('imageFile'), (req, res) => {
     const { name, dob, contact, image } = req.body;
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : image;
     const sql = 'INSERT INTO student (name, dob, contact, image) VALUES (?, ?, ?, ?)';
 
-    // Insert the new student into the database
-    connection.query(sql, [name, dob, contact, image], (error, results) => {
+    connection.query(sql, [name, dob, contact, imagePath], (error) => {
         if (error) {
-            // Handle any error that occurs during the database operation
-            console.error('Error adding student:', error);
+            console.error('Error adding student:', error.message);
             return res.send('Error adding student');
-        } else {
-            // Send a success response - redirect back to student list
-            res.redirect('/');
         }
+        res.redirect('/');
     });
 });
 
 // ---------- ROUTE: Display the "Edit Student" form ----------
 app.get('/student/:id/edit', (req, res) => {
     const studentId = req.params.id;
-    const sql = 'SELECT * FROM student WHERE studentId = ?';
+    const sql = 'SELECT studentId AS studentId, name, dob, contact, image FROM student WHERE studentId = ?';
     connection.query(sql, [studentId], (error, results) => {
         if (error) {
             console.error('Database query error:', error.message);
             return res.send('Error retrieving student for edit');
         }
         if (results.length > 0) {
-            res.render('editStudent', { student: results[0] });
+            res.render('editStudent', { student: normalizeStudent(results[0]) });
         } else {
             res.send('Student not found');
         }
@@ -102,11 +120,13 @@ app.get('/student/:id/edit', (req, res) => {
 });
 
 // ---------- ROUTE: Handle form submission - Update student in the database ----------
-app.post('/student/:id/edit', (req, res) => {
+app.post('/student/:id/edit', upload.single('imageFile'), (req, res) => {
     const studentId = req.params.id;
-    const { name, dob, contact, image } = req.body;
+    const { name, dob, contact, image, existingImage } = req.body;
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : (image || existingImage || '');
     const sql = 'UPDATE student SET name = ?, dob = ?, contact = ?, image = ? WHERE studentId = ?';
-    connection.query(sql, [name, dob, contact, image, studentId], (error, results) => {
+
+    connection.query(sql, [name, dob, contact, imagePath, studentId], (error) => {
         if (error) {
             console.error('Error updating student:', error.message);
             return res.send('Error updating student');
@@ -115,17 +135,25 @@ app.post('/student/:id/edit', (req, res) => {
     });
 });
 
-app.post('/student/:id/delete', (req, res) => {
-    const studentId = req.params.id;
+const deleteStudent = (req, res) => {
+    const studentId = req.body.studentId || req.body.id || req.params.id;
+    if (!studentId) {
+        return res.status(400).send('Student ID is required');
+    }
+
     const sql = 'DELETE FROM student WHERE studentId = ?';
-    connection.query(sql, [studentId], (error, results) => {
+    connection.query(sql, [studentId], (error) => {
         if (error) {
             console.error('Error deleting student:', error.message);
             return res.send('Error deleting student');
         }
         res.redirect('/');
     });
-});
+};
+
+app.post('/student/:id/delete', deleteStudent);
+app.post('/student/delete/:id', deleteStudent);
+app.post('/student/delete', deleteStudent);
 
 app.listen(3000, () => {
     console.log('Server running at http://localhost:3000');
